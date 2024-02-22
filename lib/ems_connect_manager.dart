@@ -1,10 +1,7 @@
 import 'dart:async';
-import 'dart:developer';
-
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
-
 import 'ems_const_data.dart';
 import 'entity/ten_device_entity.dart';
 import 'entity/three_device_entity.dart';

@@ -3,8 +3,8 @@
 name: dart_ems_sdk
 description: A new Flutter project.
 version: 0.0.2
-publish_to: http://localhost:8080 # Remove this line if you wish to publish to pub.dev
-
+publish_to: https://github.com/morrisone/ems_dart_sdk.git # Remove this line if you wish to publish to pub.dev
+homepage: https://github.com/morrisone/ems_dart_sdk.git
 environment:
   sdk: '>=2.19.6 <4.0.0'
   flutter: ">=1.17.0"

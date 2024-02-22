@@ -401,8 +401,6 @@ class EmsTenFuncManager {
       0x0A
     ];
 
-    List<int> result = [];
-
     ConnectManager
         .getInstance()
         .fatDataTenEventBus
