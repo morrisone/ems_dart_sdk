@@ -1,12 +1,14 @@
 library dart_ems_sdk;
 
-export 'ems_ble_util.dart';
-
-/// A Calculator.
-class Calculator {
-  /// Returns [value] plus 1.
-  int addOne(int value) => value + 1;
-  int getCurrent() {
-    return addOne(9);
-  }
+export 'src/ems_ble_util.dart';
+export 'src/ems_func_api.dart';
+export 'src/ems_func_ten_api.dart';
+export 'src/ems_const_data.dart';
+export 'package:flutter_blue_plus/flutter_blue_plus.dart';
+export 'src/ems_connect_manager.dart';
+/// 蓝牙连接状态
+enum EmsBluetoothConnectionState {
+  disconnected,
+  connected,
 }
+

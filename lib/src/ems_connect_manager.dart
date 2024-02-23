@@ -2,9 +2,9 @@ import 'dart:async';
 import 'package:event_bus/event_bus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
+import '../entity/ten_device_entity.dart';
+import '../entity/three_device_entity.dart';
 import 'ems_const_data.dart';
-import 'entity/ten_device_entity.dart';
-import 'entity/three_device_entity.dart';
 
 class ConnectManager {
   // 静态变量，用于保存类的唯一实例

@@ -1,3 +1,4 @@
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 class ThreeDeviceStatus {
   /// 模式 1.捶打 2.按压 3.揉捏 4.推拿 5.自定义
   late int mode;
