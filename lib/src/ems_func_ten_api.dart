@@ -5,9 +5,8 @@ import 'ems_connect_manager.dart';
 
 enum TenControlDeviceType { start, end, pause, continues }
 
-typedef CallBackTenVersion = void Function(bool isSuccess, String version);
-typedef CallBackTenWriteStatus = void Function(bool isSuccess);
-
+typedef CallBackWriteStatus = void Function(bool isSuccess);
+typedef CallBackVersion = void Function(bool isSuccess, String version);
 typedef CallBackPower = void Function(
     bool isSuccess, TenDevicePower tenDevicePower);
 typedef CallBackReportModel = void Function(
@@ -15,16 +14,16 @@ typedef CallBackReportModel = void Function(
 
 class EmsTenFuncManager {
   /// 十路查询版本
-  static Future<void> getVersion(CallBackTenVersion callBackTenVersion) async {
+  static Future<void> getVersion(CallBackVersion callBackVersion) async {
     ConnectManager
         .getInstance()
         .versionTenEventBus
         .on<String>()
         .listen((event) {
       if (event.isEmpty) {
-        callBackTenVersion(false, event);
+        callBackVersion(false, event);
       } else {
-        callBackTenVersion(true, event);
+        callBackVersion(true, event);
       }
     });
 
@@ -53,6 +52,8 @@ class EmsTenFuncManager {
     * @param carrierWave 载波
     * @param duration 保持时间
     * @param interval 休息时间
+    * @param upTime 上升时间间隔
+    * @param downTime 下降时间间隔
    */
   static Future<void> sendParam(int frequency,
       int pulseWidth,
@@ -60,9 +61,22 @@ class EmsTenFuncManager {
       int carrierWave,
       int duration,
       int interval,
-      CallBackTenWriteStatus callBackTenWriteStatus) async {
+      int upTime,
+      int downTime,
+      CallBackWriteStatus callBackWriteStatus) async {
     //保持时间就是放电时间 休息时间就是间隔时间,上升时间和下降时间是固定的15
-    int bufferTime = 15;
+    if (frequency * pulseWidth >= 100000) {
+      callBackWriteStatus(false);
+      return;
+    }
+    if (frequency < 1 || frequency > 200) {
+      callBackWriteStatus(false);
+      return;
+    }
+    if (pulseWidth < 10 || pulseWidth > 100) {
+      callBackWriteStatus(false);
+      return;
+    }
     int valid = (0x3B +
         0x00 +
         0x14 +
@@ -73,11 +87,11 @@ class EmsTenFuncManager {
         fundamentalWave +
         carrierWave +
         0x00 +
-        bufferTime +
+        upTime +
         0x00 +
         duration +
         0x00 +
-        bufferTime +
+        downTime +
         0x00 +
         interval) &
     0xff;
@@ -93,11 +107,11 @@ class EmsTenFuncManager {
       fundamentalWave,
       carrierWave,
       0x00,
-      bufferTime,
+      upTime,
       0x00,
       duration,
       0x00,
-      bufferTime,
+      downTime,
       0x00,
       interval,
       valid,
@@ -113,18 +127,18 @@ class EmsTenFuncManager {
               .characteristic!
               .properties
               .writeWithoutResponse);
-      callBackTenWriteStatus(true);
+      callBackWriteStatus(true);
     } catch (e) {
       if (kDebugMode) {
         print("Write Error:");
       }
-      callBackTenWriteStatus(false);
+      callBackWriteStatus(false);
     }
   }
 
   /// 操作设备
-  static Future<void> controlDevice(TenControlDeviceType type,
-      CallBackTenWriteStatus callBackTenWriteStatus) async {
+  Future<void> controlDevice(TenControlDeviceType type,
+      CallBackWriteStatus callBackWriteStatus) async {
     int byte = 0;
     switch (type) {
       case TenControlDeviceType.start:
@@ -152,23 +166,23 @@ class EmsTenFuncManager {
               .characteristic!
               .properties
               .writeWithoutResponse);
-      callBackTenWriteStatus(true);
+      callBackWriteStatus(true);
     } catch (e) {
       if (kDebugMode) {
         print("Write Error:");
       }
-      callBackTenWriteStatus(false);
+      callBackWriteStatus(false);
     }
   }
 
   /* 十路 发送时间
-    * @param bufferTime 上升下降时间
+    * @param bufferTime 上升下降时间/10
     * @param durationTime 保持时间
     * @param intervalTime 休息时间
    */
   static Future<void> sendTime(int bufferTime, int durationTime,
-      int intervalTime, CallBackTenWriteStatus callBackTenWriteStatus) async {
-    int bufferIntTime = bufferTime;
+      int intervalTime, CallBackWriteStatus callBackWriteStatus) async {
+    int bufferIntTime = bufferTime * 10;
     int valid = (0x3B +
         0x00 +
         0x0f +
@@ -210,12 +224,12 @@ class EmsTenFuncManager {
               .characteristic!
               .properties
               .writeWithoutResponse);
-      callBackTenWriteStatus(true);
+      callBackWriteStatus(true);
     } catch (e) {
       if (kDebugMode) {
         print("Write Error:");
       }
-      callBackTenWriteStatus(false);
+      callBackWriteStatus(false);
     }
   }
 
@@ -223,7 +237,7 @@ class EmsTenFuncManager {
     * @param strength 十路 每路强度
    */
   static Future<void> sendStrength(List<int> strength,
-      CallBackTenWriteStatus callBackTenWriteStatus) async {
+      CallBackWriteStatus callBackWriteStatus) async {
     List<int> bytes = [0x3B, 0x00, 0x11, 0x00, 0x07];
     int num = bytes.reduce((value, element) => value + element);
     for (var element in strength) {
@@ -244,12 +258,12 @@ class EmsTenFuncManager {
               .characteristic!
               .properties
               .writeWithoutResponse);
-      callBackTenWriteStatus(true);
+      callBackWriteStatus(true);
     } catch (e) {
       if (kDebugMode) {
         print("Write Error:");
       }
-      callBackTenWriteStatus(false);
+      callBackWriteStatus(false);
     }
   }
 
@@ -257,7 +271,7 @@ class EmsTenFuncManager {
     * @param
    */
   static Future<void> sendBalance(int left, int right,
-      CallBackTenWriteStatus callBackTenWriteStatus) async {
+      CallBackWriteStatus callBackWriteStatus) async {
     int valid = (0x3B + 0x00 + 0x09 + 0x00 + 0x09 + left + right) & 0xff;
     List<int> bytes = [0x3B, 0x00, 0x09, 0x00, 0x09, left, right, valid, 0x0A];
     try {
@@ -270,12 +284,12 @@ class EmsTenFuncManager {
               .characteristic!
               .properties
               .writeWithoutResponse);
-      callBackTenWriteStatus(true);
+      callBackWriteStatus(true);
     } catch (e) {
       if (kDebugMode) {
         print("Write Error:");
       }
-      callBackTenWriteStatus(false);
+      callBackWriteStatus(false);
     }
   }
 
@@ -318,7 +332,7 @@ class EmsTenFuncManager {
     * @param
    */
   static Future<void> closeDevice(
-      CallBackTenWriteStatus callBackTenWriteStatus) async {
+      CallBackWriteStatus callBackWriteStatus) async {
     int valid = (0x3B + 0x00 + 0x07 + 0x00 + 0x0e) & 0xff;
     List<int> bytes = [0x3B, 0x00, 0x07, 0x00, 0x0e, valid, 0x0A];
     try {
@@ -331,12 +345,12 @@ class EmsTenFuncManager {
               .characteristic!
               .properties
               .writeWithoutResponse);
-      callBackTenWriteStatus(true);
+      callBackWriteStatus(true);
     } catch (e) {
       if (kDebugMode) {
         print("Write Error:");
       }
-      callBackTenWriteStatus(false);
+      callBackWriteStatus(false);
     }
   }
 
@@ -344,7 +358,7 @@ class EmsTenFuncManager {
     * @param
    */
   static Future<void> maturingDevice(
-      CallBackTenWriteStatus callBackTenWriteStatus) async {
+      CallBackWriteStatus callBackWriteStatus) async {
     int valid = (0x3B + 0x00 + 0x07 + 0x00 + 0x1d) & 0xff;
     List<int> bytes = [0x3B, 0x00, 0x07, 0x00, 0x1d, valid, 0x0A];
     try {
@@ -357,12 +371,12 @@ class EmsTenFuncManager {
               .characteristic!
               .properties
               .writeWithoutResponse);
-      callBackTenWriteStatus(true);
+      callBackWriteStatus(true);
     } catch (e) {
       if (kDebugMode) {
         print("Write Error:");
       }
-      callBackTenWriteStatus(false);
+      callBackWriteStatus(false);
     }
   }
 
